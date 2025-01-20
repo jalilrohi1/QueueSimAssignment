@@ -4,10 +4,11 @@ import argparse
 import csv
 import collections
 import logging
+import matplotlib.pyplot as plt
+import numpy as np
 from random import expovariate, sample, seed
 
 from discrete_event_sim import Simulation, Event
-
 # One possible modification is to use a different distribution for job sizes or and/or interarrival times.
 # Weibull distributions (https://en.wikipedia.org/wiki/Weibull_distribution) are a generalization of the
 # exponential distribution, and can be used to see what happens when values are more uniform (shape > 1,
@@ -25,6 +26,7 @@ from discrete_event_sim import Simulation, Event
 CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w']
 
 
+
 class Queues(Simulation):
     """Simulation of a system with n servers and n queues.
 
@@ -33,7 +35,7 @@ class Queues(Simulation):
     the shortest one.
     """
 
-    def __init__(self, lambd, mu, n, d):
+    def __init__(self, lambd, mu, n, d, monitor_interval=1):
         super().__init__()
         self.running = [None] * n  # if not None, the id of the running job (per queue)
         self.queues = [collections.deque() for _ in range(n)]  # FIFO queues of the system
@@ -45,8 +47,10 @@ class Queues(Simulation):
         self.d = d
         self.mu = mu
         self.arrival_rate = lambd * n  # frequency of new jobs is proportional to the number of queues
+        self.queue_size_log = []  # Initialize queue_size_log
         self.schedule(expovariate(lambd), Arrival(0))  # schedule the first arrival
-
+        self.schedule(0, MonitorQueueSizes(monitor_interval))
+        
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
 
@@ -55,13 +59,14 @@ class Queues(Simulation):
 
         # memoryless behavior results in exponentially distributed times between arrivals (we use `expovariate`)
         # the rate of arrivals is proportional to the number of queues
-
+        logging.debug(f"Scheduling arrival of job {job_id}")
         self.schedule(expovariate(self.arrival_rate), Arrival(job_id))
 
     def schedule_completion(self, job_id, queue_index):  #done TODO: complete this method
         """Schedule the completion of a job."""
         # schedule the time of the completion event
         # check `schedule_arrival` for inspiration
+        logging.debug(f"Scheduling completion of job {job_id} on queue {queue_index}")
         self.schedule(expovariate(self.mu), Completion(job_id, queue_index))
 
     def queue_len(self, i):
@@ -94,6 +99,7 @@ class Arrival(Event):
         # schedule the arrival of the next job
 
         # if you are looking for inspiration, check the `Completion` class below
+        logging.info(f"Job {self.id} arrived at time {sim.t:.2f}. Joining queue {queue_index}") #Log arrival
         if sim.running[queue_index] is None:
             sim.running[queue_index] = self.id  # set the incoming job as running
             sim.schedule_completion(self.id, queue_index)  # schedule its completion
@@ -113,6 +119,7 @@ class Completion(Event):
         queue_index = self.queue_index
         assert sim.running[queue_index] == self.job_id  # the job must be the one running
         sim.completions[self.job_id] = sim.t
+        logging.info(f"Job {self.job_id} completed at time {sim.t:.2f} on queue {queue_index}") #Log completion
         queue = sim.queues[queue_index]
         if queue:  # queue is not empty
             sim.running[queue_index] = new_job_id = queue.popleft()  # assign the first job in the queue
@@ -120,6 +127,24 @@ class Completion(Event):
         else:
             sim.running[queue_index] = None  # no job is running on the queue
 
+class MonitorQueueSizes(Event):
+    """Monitor the queue sizes at regular intervals."""
+
+    def __init__(self, interval=1):
+        self.interval = interval
+
+    def process(self, sim: Queues):
+        queue_lengths = [sim.queue_len(i) for i in range(sim.n)]
+        sim.queue_size_log.append(queue_lengths)
+        sim.schedule(self.interval, self)
+
+def theoretical_queue_length(d, lambd, mu, max_queue_size):
+    rho = lambd / mu
+    fractions = []
+    for x in range(max_queue_size + 1):
+        fraction = (1 - rho) * (rho ** x)
+        fractions.append(fraction)
+    return fractions
 
 def main():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -128,6 +153,7 @@ def main():
     parser.add_argument('--max-t', type=float, default=1_000_000, help="maximum time to run the simulation")
     parser.add_argument('--n', type=int, default=1, help="number of servers")
     parser.add_argument('--d', type=int, default=1, help="number of queues to sample")
+    parser.add_argument('--monitor-interval', type=float, default=1, help="interval to monitor queue sizes")
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument("--seed", help="random seed")
     parser.add_argument("--verbose", action='store_true')
@@ -148,6 +174,8 @@ def main():
 
     if args.lambd >= args.mu:
         logging.warning("The system is unstable: lambda >= mu")
+    # Suppress matplotlib font manager logs
+    logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 
     sim = Queues(args.lambd, args.mu, args.n, args.d)
     sim.run(args.max_t)
@@ -163,6 +191,19 @@ def main():
         with open(args.csv, 'a', newline='') as f:
             writer = csv.writer(f)
             writer.writerow(params + [W])
+
+    queue_size_log = np.array(sim.queue_size_log)
+    max_queue_size = queue_size_log.max()
+    
+    #fractions = [(queue_size_log >= x).mean() for x in range(max_queue_size + 1)]
+    fractions = theoretical_queue_length(d, lambd, mu, max_queue_size)
+    
+    plt.plot(range(max_queue_size + 1), fractions, label="Experimental")
+    plt.xlabel("Queue Size")
+    plt.ylabel("Fraction of Queues")
+    plt.legend()
+    plt.grid()
+    plt.show()
 
 
 if __name__ == '__main__':
