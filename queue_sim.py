@@ -45,7 +45,7 @@ class Queues(Simulation):
     the shortest one.
     """
 
-    def __init__(self, lambd, mu, n, d, monitor_interval=1):
+    def __init__(self, lambd, mu, n, d, monitor_interval=1, shape=None):
         super().__init__()
         self.running = [None] * n  # if not None, the id of the running job (per queue)
         self.queues = [collections.deque() for _ in range(n)]  # FIFO queues of the system
@@ -58,6 +58,7 @@ class Queues(Simulation):
         self.mu = mu
         self.arrival_rate = lambd * n  # frequency of new jobs is proportional to the number of queues
         self.queue_size_log = []  # Initialize queue_size_log
+        self.shape = shape  # Ensure shape is initialized
         self.schedule(self.generate_interarrival_time(), Arrival(0)) # schedule the first arrival
         self.schedule(0, MonitorQueueSizes(monitor_interval))
     
@@ -210,7 +211,7 @@ def main():
     max_queue_size = queue_size_log.max()
     
     #fractions = [(queue_size_log >= x).mean() for x in range(max_queue_size + 1)]
-    fractions = theoretical_queue_length(d, lambd, mu, max_queue_size)
+    fractions = theoretical_queue_length(args.d, args.lambd, args.mu, max_queue_size)
     
     plt.plot(range(max_queue_size + 1), fractions, label="Experimental")
     plt.xlabel("Queue Size")
