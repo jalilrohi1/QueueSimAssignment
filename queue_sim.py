@@ -16,7 +16,7 @@ from discrete_event_sim import Simulation, Event
 # on few jobs).
 
 # To use Weibull variates, for a given set of parameter do something like
-# from workloads import weibull_generator
+from workloads import weibull_generator
 # gen = weibull_generator(shape, mean)
 #
 # and then call gen() every time you need a random variable
@@ -26,6 +26,16 @@ from discrete_event_sim import Simulation, Event
 CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w']
 
 
+class MonitorQueueSizes(Event):
+    """Monitor the queue sizes at regular intervals."""
+
+    def __init__(self, interval=1):
+        self.interval = interval
+
+    def process(self, sim: 'Queues'):
+        queue_lengths = [sim.queue_len(i) for i in range(sim.n)]
+        sim.queue_size_log.append(queue_lengths)
+        sim.schedule(self.interval, self)
 
 class Queues(Simulation):
     """Simulation of a system with n servers and n queues.
@@ -48,9 +58,21 @@ class Queues(Simulation):
         self.mu = mu
         self.arrival_rate = lambd * n  # frequency of new jobs is proportional to the number of queues
         self.queue_size_log = []  # Initialize queue_size_log
-        self.schedule(expovariate(lambd), Arrival(0))  # schedule the first arrival
+        self.schedule(self.generate_interarrival_time(), Arrival(0)) # schedule the first arrival
         self.schedule(0, MonitorQueueSizes(monitor_interval))
-        
+    
+    def generate_interarrival_time(self):
+        if self.shape:
+            return weibull_generator(self.shape, 1 / self.lambd)()
+        else:
+            return expovariate(self.lambd)
+
+    def generate_service_time(self):
+        if self.shape:
+            return weibull_generator(self.shape, 1 / self.mu)()
+        else:
+            return expovariate(self.mu)    
+    
     def schedule_arrival(self, job_id):
         """Schedule the arrival of a new job."""
 
@@ -60,14 +82,14 @@ class Queues(Simulation):
         # memoryless behavior results in exponentially distributed times between arrivals (we use `expovariate`)
         # the rate of arrivals is proportional to the number of queues
         logging.debug(f"Scheduling arrival of job {job_id}")
-        self.schedule(expovariate(self.arrival_rate), Arrival(job_id))
-
+        self.schedule(self.generate_interarrival_time(), Arrival(job_id))
+    
     def schedule_completion(self, job_id, queue_index):  #done TODO: complete this method
         """Schedule the completion of a job."""
         # schedule the time of the completion event
         # check `schedule_arrival` for inspiration
         logging.debug(f"Scheduling completion of job {job_id} on queue {queue_index}")
-        self.schedule(expovariate(self.mu), Completion(job_id, queue_index))
+        self.schedule(self.generate_service_time(), Completion(job_id, queue_index))
 
     def queue_len(self, i):
         """Return the length of the i-th queue.
@@ -127,16 +149,7 @@ class Completion(Event):
         else:
             sim.running[queue_index] = None  # no job is running on the queue
 
-class MonitorQueueSizes(Event):
-    """Monitor the queue sizes at regular intervals."""
 
-    def __init__(self, interval=1):
-        self.interval = interval
-
-    def process(self, sim: Queues):
-        queue_lengths = [sim.queue_len(i) for i in range(sim.n)]
-        sim.queue_size_log.append(queue_lengths)
-        sim.schedule(self.interval, self)
 
 def theoretical_queue_length(d, lambd, mu, max_queue_size):
     rho = lambd / mu
@@ -154,6 +167,7 @@ def main():
     parser.add_argument('--n', type=int, default=1, help="number of servers")
     parser.add_argument('--d', type=int, default=1, help="number of queues to sample")
     parser.add_argument('--monitor-interval', type=float, default=1, help="interval to monitor queue sizes")
+    parser.add_argument('--shape', type=float, help="shape parameter for Weibull distribution")
     parser.add_argument('--csv', help="CSV file in which to store results")
     parser.add_argument("--seed", help="random seed")
     parser.add_argument("--verbose", action='store_true')
@@ -177,7 +191,7 @@ def main():
     # Suppress matplotlib font manager logs
     logging.getLogger('matplotlib.font_manager').setLevel(logging.WARNING)
 
-    sim = Queues(args.lambd, args.mu, args.n, args.d)
+    sim = Queues(args.lambd, args.mu, args.n, args.d, args.monitor_interval, args.shape)
     sim.run(args.max_t)
 
     completions = sim.completions
