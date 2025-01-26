@@ -15,7 +15,7 @@ Params = collections.namedtuple('Params', 'mu max_t n d')
 
 def parse_rows(reader: csv.reader):
     """Parse the rows of the CSV file."""
-
+    next(reader)  # Skip the header row
     for row in reader:
         row = Row(*row)
         yield Row(lambd=float(row.lambd), mu=float(row.mu), max_t=float(row.max_t),

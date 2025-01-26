@@ -86,7 +86,7 @@ class Queues(Simulation):
         if self.shape:
             return weibull_generator(self.shape, 1 / self.lambd)()
         else:
-            return expovariate(self.lambd)
+            return expovariate(self.arrival_rate)
 
     def generate_service_time(self):
         if self.shape:
@@ -170,8 +170,6 @@ class Completion(Event):
         else:
             sim.running[queue_index] = None  # no job is running on the queue
 
-
-
 def theoretical_queue_length(d, lambd, mu, max_queue_size):
     rho = lambd / mu
     fractions = []
@@ -218,24 +216,25 @@ def main():
     sim.run(args.max_t)
 
     completions = sim.completions
-    W = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
+    w = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
          / len(completions))
-    print(f"Average time spent in the system: {W}")
+    print(f"Average time spent in the system: {w}")
     if args.mu == 1 and args.lambd != 1:
-        print(f"Theoretical expectation for random server choice (d=1): {1 / (1 - args.lambd)}")
+        W_T=1/(1-args.lambd)
+        print(f"Theoretical expectation for random server choice (d=1): {W_T}")
 
     #if args.csv is not None:
     #    with open(args.csv, 'a', newline='') as f:
     #        writer = csv.writer(f)
     #        writer.writerow(params + [W])
+    
     if args.csv is not None:
         with open(args.csv, 'a', newline='') as f:
             writer = csv.writer(f)
+            if f.tell() == 0:  # Write header if file is empty
+                writer.writerow(CSV_COLUMNS)
             for i in range(len(sim.queue_size_log)):
-                writer.writerow([sim.queue_size_log[i], sim.waiting_time_log[i], sim.server_utilization_log[i]])
-
-###########################
-    
+                writer.writerow([args.lambd, args.mu, args.max_t, args.n, args.d,w])
 
 if __name__ == '__main__':
     main()
