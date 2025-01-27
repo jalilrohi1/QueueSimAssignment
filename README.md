@@ -1,12 +1,9 @@
 
 
-### Queue Simulation and Analysis
-
 ```markdown
+# Queue Simulation and Analysis
 
-This repository contains a set of scripts for simulating queue systems and analyzing the results.
-The main components include running simulations with varying parameters and plotting the results
-to visualize the performance of the queue systems.
+This repository contains scripts for simulating queue systems and analyzing their behavior. The main functionalities include running simulations with varying parameters and visualizing the results through plots.
 
 ## Prerequisites
 
@@ -16,37 +13,17 @@ to visualize the performance of the queue systems.
 
 You can install the required libraries using pip:
 
-```sh
+```bash
 pip install pandas matplotlib
 ```
 
 ## Repository Structure
 
-- 
-
-queue_experiments.sh
-
-: A Bash script to run multiple queue simulations with varying parameters.
-- 
-
-main.py
-
-: The main Python script to run a single queue simulation.
-- 
-
-th2.py
-
-: A Python script to plot the results of the simulations from a CSV file.
-- 
-
-data
-
-: Directory to store the output CSV files from the simulations.
-- 
-
-plot_results
-
-: Directory to store the generated plots.
+- **`queue_experiments.sh`**: A Bash script to run multiple queue simulations with varying parameters.
+- **`main.py`**: The main Python script to run a single queue simulation.
+- **`th2.py`**: A Python script to visualize simulation results from a CSV file.
+- **`data/`**: Directory to store output CSV files from simulations.
+- **`plot_results/`**: Directory to store the generated plots.
 
 ## Usage
 
@@ -54,35 +31,31 @@ plot_results
 
 To run multiple simulations with varying parameters, use the `queue_experiments.sh` script:
 
-```sh
+```bash
 bash ./automation/queue_experiments.sh [options]
 ```
 
 #### Options
 
-- `--lambdas`: Comma-separated list of arrival rates (lambda) to test.
-- `--ds`: Comma-separated list of values for `d` (number of servers to choose from).
+- `--lambdas`: Comma-separated list of arrival rates (`λ`) to test.
+- `--ds`: Comma-separated list of `d` values (number of servers to choose from).
 - `--mu`: Service rate (default: 1).
 - `--n`: Number of servers (default: 10).
 - `--max-t`: Maximum simulation time (default: 100000).
 - `--monitor-interval`: Monitoring interval (default: 10).
-- `--csv`: Path to the output CSV file (default: 
-
-out.csv
-
-).
+- `--csv`: Path to the output CSV file (default: `out.csv`).
 
 #### Example
 
-```sh
+```bash
 bash ./automation/queue_experiments.sh --lambdas "0.5,0.7,0.9" --ds "1,2,5" --mu 1 --n 10 --max-t 100000 --monitor-interval 10 --csv ./data/out.csv
 ```
 
-### Plotting Results
+### Visualizing Results
 
-To plot the results from a CSV file, use the `th2.py` script:
+To plot results from a CSV file, use the `th2.py` script:
 
-```sh
+```bash
 python3 ./plot_results/th2.py --csv <path_to_csv_file> --output <path_to_output_image>
 ```
 
@@ -93,7 +66,7 @@ python3 ./plot_results/th2.py --csv <path_to_csv_file> --output <path_to_output_
 
 #### Example
 
-```sh
+```bash
 python3 ./plot_results/th2.py --csv ./data/new_out.csv --output ./plot_results/queue_size_fractions.png
 ```
 
@@ -111,44 +84,47 @@ The input CSV file should have the following columns:
 8. `waiting_times`: List of waiting times
 9. `server_utilizations`: List of server utilizations
 
-## Script Explanation
+## Script Details
 
 ### `queue_experiments.sh`
 
-This Bash script runs multiple queue simulations with varying parameters. It iterates over different values of `lambda` and `d`, running the `main.py` script for each combination and saving the results to a CSV file.
+This Bash script automates running multiple queue simulations by iterating over various combinations of `λ` (arrival rate) and `d` values. The results are saved to a specified CSV file.
 
-#### How It Works
+#### Workflow
 
-1. **Default Parameters**: The script defines default values for `lambda`, `d`, `mu`, `n`, `max_t`, `monitor_interval`, and `csv_file`.
-2. **Command-Line Argument Parsing**: The script uses a `while` loop and a `case` statement to parse command-line arguments and override default values.
-3. **Running Simulations**: The script uses nested loops to iterate over all combinations of `lambda` and `d`, running the `main.py` script for each combination and saving the results to the specified CSV file.
+1. Sets default simulation parameters.
+2. Parses user-specified arguments to override defaults.
+3. Iterates over combinations of `λ` and `d`, running `main.py` for each and appending results to the CSV file.
 
 ### `main.py`
 
-This Python script runs a single queue simulation based on the provided parameters. It simulates the queue system and outputs the results, including average time spent in the system, queue sizes, waiting times, and server utilizations.
+This Python script simulates a queue system for given parameters, including:
 
-#### How It Works
+- Arrival rate (`λ`)
+- Service rate (`μ`)
+- Number of servers (`n`)
+- Maximum simulation time (`max_t`)
+- Number of servers to choose from (`d`)
 
-1. **Argument Parsing**: The script uses `argparse` to parse command-line arguments for `lambda`, `mu`, `max_t`, `n`, `d`, `monitor_interval`, `shape`, and `csv`.
-2. **Simulation**: The script initializes a queue simulation with the specified parameters and runs the simulation for the specified maximum time.
-3. **Output**: The script calculates the average time spent in the system and saves the results to the specified CSV file.
+The script calculates metrics like average time spent in the system, queue sizes, and server utilization, saving the results to a CSV file.
 
 ### `th2.py`
 
-This Python script reads the simulation results from a CSV file and generates a plot. The plot shows the fraction of queues with at least a certain size (Q) for different values of `lambda` and `d`. The script creates a single image with four subplots, each representing a different value of `d` (1, 2, 5, 10).
+This Python script reads simulation data from a CSV file and generates a plot showing the fraction of queues with at least a certain size (Q) for different `λ` and `d` values.
 
-#### How It Works
+#### Workflow
 
-1. **Argument Parsing**: The script uses `argparse` to parse command-line arguments for the input CSV file and the output image file.
-2. **Data Reading and Processing**: The script reads the CSV file using `pandas` and processes the data to convert string representations of lists to actual lists.
-3. **Plotting**: The script creates a figure with four subplots using `matplotlib`. Each subplot represents a different value of `d` and shows the fraction of queues with at least a certain size (Q) for different values of `lambda`.
-4. **Saving the Plot**: The script saves the generated plot to the specified output image file.
+1. Reads the CSV file using `pandas` and processes the data.
+2. Generates a figure with four subplots using `matplotlib`. Each subplot represents a specific value of `d` (1, 2, 5, 10).
+3. Saves the resulting plot to the specified file.
 
 ### Plot Example
 
-The generated plot will contain four subplots, each representing a different value of `d` (1, 2, 5, 10). Each subplot will show the fraction of queues with at least a certain size (Q) for different values of `lambda`.
+The generated plot will contain four subplots, each representing a different value of `d` (1, 2, 5, 10). Each subplot shows the fraction of queues with at least a certain size (Q) for varying arrival rates (`λ`).
 
-### Project Structure
+---
+
+# Project Structure
 
 ```plaintext
 .
@@ -166,16 +142,17 @@ The generated plot will contain four subplots, each representing a different val
 
 ### Explanation
 
-- **automation/**
-  - `queue_experiments.sh`: A Bash script to run multiple queue simulations with varying parameters. It iterates over different values of `lambda` and `d`, running the `main.py` script for each combination and saving the results to a CSV file.
+- **`automation/`**
+  - `queue_experiments.sh`: Bash script to automate running multiple queue simulations with different parameter combinations. This script iterates over specified values for arrival rate (`lambda`) and server selection (`d`) and stores the results in CSV format.
 
-- **data/**
-  - `new_out.csv`: Example output CSV file containing the results of the simulations. This directory is used to store the output CSV files generated by the `queue_experiments.sh` script.
+- **`data/`**
+  - `new_out.csv`: Example CSV file containing the output from a queue simulation. This folder is used to store all simulation results.
 
-- **main/**
-  - `main.py`: The main Python script to run a single queue simulation. It simulates the queue system based on the provided parameters and outputs the results, including average time spent in the system, queue sizes, waiting times, and server utilizations.
+- **`main/`**
+  - `main.py`: The primary Python script for running a single queue simulation. It simulates the system with specified parameters like `lambda`, `mu`, `n`, and `d`, and saves metrics like average queue sizes, waiting times, and server utilization to a CSV file.
 
-- **plot_results/**
-  - `th2.py`: A Python script to plot the results of the simulations from a CSV file. The script generates a plot showing the fraction of queues with at least a certain size (Q) for different values of `lambda` and `d`. It creates a single image with four subplots, each representing a different value of `d` (1, 2, 5, 10).
+- **`plot_results/`**
+  - `th2.py`: Python script for visualizing simulation results from a CSV file. It generates a plot with four subplots, each showing queue size distributions for a specific value of `d`.
 
-- **README.md**: The project README file, providing an overview of the project, usage instructions, and explanations of the scripts.
+- **`README.md`**
+  - A comprehensive guide for the project, including installation steps, usage examples, and file descriptions.
