@@ -11,7 +11,7 @@ from queue_sim import CSV_COLUMNS
 
 Row = collections.namedtuple('Row', CSV_COLUMNS)
 
-Params = collections.namedtuple('Params', 'mu max_t n d')
+Params = collections.namedtuple('Params', 'mu max_t n d w')
 
 def parse_rows(reader: csv.reader):
     """Parse the rows of the CSV file."""
@@ -34,7 +34,7 @@ def read_csv(filename: str, mu: list[float], max_t: list[float], n: list[int], d
     with open(filename, 'r') as f:
         for row in parse_rows(csv.reader(f)):
             if row.mu in mu and row.max_t in max_t and row.n in n and row.d in d:
-                data[Params(row.mu, row.max_t, row.n, row.d)].append((row.lambd, row.w))
+                data[Params(row.mu, row.max_t, row.n, row.d,row.w)].append((row.lambd, row.w))
     return data
 
 
