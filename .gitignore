@@ -20,7 +20,7 @@ data/
 
 # Ignore plot images
 plots/
-plot_results/
+
 
 # Ignore compiled files
 *.so
