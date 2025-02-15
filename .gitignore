@@ -1,0 +1,46 @@
+# Ignore virtual environment
+venv/
+.venv/
+# Ignore Python cache files
+__pycache__/
+implementation/__pycache__/queue_sim.cpython-312.pyc    
+implementation/queue_sim2.py
+libs/__pycache__/discrete_event_sim.cpython-312.pyc        
+libs/__pycache__/workloads.cpython-312.pyc
+        main/main2.py
+*.py[cod]
+*$py.class
+
+# Ignore VSCode settings
+.vscode/
+
+# Ignore data files
+data/
+
+# Ignore plot images
+plots/
+plot_results/
+
+# Ignore compiled files
+*.so
+*.o
+*.a
+*.out
+
+# Ignore log files
+*.log
+
+# Ignore temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+
+# Ignore backup files
+*.bak
+*.old
+*.orig
+
+# Ignore system files
+.DS_Store
+Thumbs.db
