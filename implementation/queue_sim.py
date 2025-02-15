@@ -113,6 +113,9 @@ class Queues(Simulation):
         if self.use_rr:
             if remaining_time is None:
                 remaining_time = self.generate_service_time()
+            if isinstance(remaining_time, tuple):
+                remaining_time = remaining_time[1]
+                
             if remaining_time > self.quantum:
                 self.schedule(self.quantum, Completion(job_id, queue_index, remaining_time - self.quantum, True))
             else:
