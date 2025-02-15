@@ -68,6 +68,8 @@ class Queues(Simulation):
         self.queue_size_log = []  # Initialize queue_size_log
         #self.waiting_time_log = []  # Initialize waiting time log
         #self.server_utilization_log = []  # Initialize server utilization log
+        self.waiting_times =[]  # Initialize the list to store waiting times
+
         self.shape = shape  # Ensure shape is initialized
         self.use_rr = use_rr
         self.quantum = quantum
@@ -172,6 +174,14 @@ class Completion(Event):
             #logging.info(f"current_job_id: {current_job_id}, self.job_id: {self.job_id}")
             assert current_job_id == self.job_id  # Verify that the completing job is the one running
             sim.completions[self.job_id] = sim.t  # Record the completion time
+            
+            # Calculate the waiting time for Round Robin, considering interruptions
+            arrival_time = sim.arrivals[self.job_id]
+            completion_time = sim.t
+            waiting_time = completion_time - arrival_time  # Total time in the system
+
+            # Add the waiting time to a list to store waiting times for all jobs
+            sim.waiting_times.append(waiting_time)  # You'll need to initialize this list in the Queues class
 
         queue = sim.queues[queue_index]  # Get the queue
         if queue:  # If the queue is not empty
