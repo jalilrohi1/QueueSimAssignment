@@ -31,9 +31,11 @@ for LAMBD in "${LAMBDA_VALUES[@]}"; do
   for D in "${D_VALUES[@]}"; do
     echo "Running simulation with lambda=$LAMBD, d=$D, shape=$SHAPE"
     if [ "$SHAPE" != "None" ]; then
-      python3 ../main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE
+      python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE
     else
-      python3 ../main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T
+      python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T
     fi
   done
 done
+
+python3 ./plot_results/plotTheoritical.py --output ./plots/Theoritical_plot --csv $CSV_FILE

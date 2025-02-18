@@ -23,7 +23,7 @@ from libs.workloads import weibull_generator
 
 
 # columns saved in the CSV file
-CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w','queue_size']
+CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w','queue_size', 'quantum', 'weibull_shape']
 #CSV_COLUMNS = ['lambd', 'mu', 'max_t', 'n', 'd', 'w', 'queue_size', 'waiting_time', 'server_utilization']
 
 
@@ -68,7 +68,7 @@ class Queues(Simulation):
         self.queue_size_log = []  # Initialize queue_size_log
         #self.waiting_time_log = []  # Initialize waiting time log
         #self.server_utilization_log = []  # Initialize server utilization log
-        self.waiting_times =[]  # Initialize the list to store waiting times
+        self.waiting_times =[]  # Initialize the list to store waiting times for RR
 
         self.shape = shape  # Ensure shape is initialized
         self.use_rr = use_rr
@@ -113,14 +113,14 @@ class Queues(Simulation):
     
     def schedule_completion(self, job_id, queue_index, remaining_time=None):
         if self.use_rr:
-            if remaining_time is None:
+            if remaining_time is None: #it generates a new service time.
                 remaining_time = self.generate_service_time()
-            if isinstance(remaining_time, tuple):
+            if isinstance(remaining_time, tuple):#for exception cases only,is a tuple, it extracts the second element (the remaining time)
                 remaining_time = remaining_time[1]
                 
-            if remaining_time > self.quantum:
+            if remaining_time > self.quantum: #it schedules an interruption after the quantum time:
                 self.schedule(self.quantum, Completion(job_id, queue_index, remaining_time - self.quantum, True))
-            else:
+            else: #is less than or equal to the quantum, it schedules the job completion directly:
                 self.schedule(remaining_time, Completion(job_id, queue_index, 0, False))
         else:
             self.schedule(self.generate_service_time(), Completion(job_id, queue_index, 0, False))
@@ -153,7 +153,7 @@ class Arrival(Event):
             sim.schedule_completion(self.id, queue_index, sim.running[queue_index])
         else:
             sim.queues[queue_index].append(self.id)
-
+            
         sim.schedule_arrival(self.id + 1)
 class Completion(Event):
     """Job completion."""

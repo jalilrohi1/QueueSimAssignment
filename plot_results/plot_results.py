@@ -13,12 +13,12 @@ csv_file = args.csv
 data = pd.read_csv(csv_file, header=None)
 
 # Assign column names based on the data structure
-data.columns = ['lambda', 'mu', 'max_t', 'n', 'd', 'average_time_spent', 'queue_sizes', 'waiting_times', 'server_utilizations']
+data.columns = ['lambda', 'mu', 'max_t', 'n', 'd', 'average_time_spent', 'waiting_times']
 
 # Convert string representations of lists to actual lists
 data['queue_sizes'] = data['queue_sizes'].apply(eval)
 data['waiting_times'] = data['waiting_times'].apply(eval)
-data['server_utilizations'] = data['server_utilizations'].apply(eval)
+#data['server_utilizations'] = data['server_utilizations'].apply(eval)
 
 # Plot average time spent in the system for different lambda and d values
 plt.figure(figsize=(10, 6))
