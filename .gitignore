@@ -5,20 +5,21 @@ venv/
 
 # Ignore Python cache files
 __pycache__/
-implementation/__pycache__/queue_sim.cpython-312.pyc 
+implementation/__pycache__
 implementation/__pycache__/   
 implementation/queue_sim2.py
 implementation/queue_sim3.py
 implementation/queue_sim1.py
-libs/__pycache__/discrete_event_sim.cpython-312.pyc        
-libs/__pycache__/workloads.cpython-312.pyc
+libs/__pycache__        
+
 storage_sim/__pycache__
 storage_sim/myenv
 storage_sim/plots/
 storage_sim/plots_old
-storage_sim/plots
+storage_sim/plots2
 storage_sim/plots50y
 storage_sim/DS_Store
+storage_sim/server_client
 
 main/main2.py
 main/main1.py
