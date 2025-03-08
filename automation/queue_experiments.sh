@@ -9,6 +9,9 @@ MAX_T=100000
 MONITOR_INTERVAL=10
 CSV_FILE="./data/out.csv"
 SHAPE=None
+USE_RR=False
+QUANTUM=1
+PLOT_FILE="./plots/Theoritical_plot_rr.png"
 
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -21,6 +24,9 @@ while [[ "$#" -gt 0 ]]; do
         --monitor-interval) MONITOR_INTERVAL="$2"; shift ;;
         --csv) CSV_FILE="$2"; shift ;;
         --shape) SHAPE="$2"; shift ;;
+        --use-rr) USE_RR=True; shift ;;
+        --quantum) QUANTUM="$2"; shift ;;
+        --plot-file) PLOT_FILE="$2"; shift ;;
         *) echo "Unknown parameter passed: $1"; exit 1 ;;
     esac
     shift
@@ -29,13 +35,21 @@ done
 # Run the experiment for each combination of lambda and d
 for LAMBD in "${LAMBDA_VALUES[@]}"; do
   for D in "${D_VALUES[@]}"; do
-    echo "Running simulation with lambda=$LAMBD, d=$D, shape=$SHAPE"
+    echo "Running simulation with lambda=$LAMBD, d=$D, shape=$SHAPE, use_rr=$USE_RR, quantum=$QUANTUM"
     if [ "$SHAPE" != "None" ]; then
-      python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE
+      if [ "$USE_RR" = True ]; then
+        python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE --use-rr --quantum $QUANTUM
+      else
+        python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE --quantum $QUANTUM
+      fi
     else
-      python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T
+      if [ "$USE_RR" = True ]; then
+        python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --use-rr --quantum $QUANTUM
+      else
+        python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --quantum $QUANTUM
+      fi
     fi
   done
 done
 
-python3 ./plot_results/plotTheoritical.py --output ./plots/Theoritical_plot --csv $CSV_FILE
+python3 ./plot_results/plotTheoritical.py --output $PLOT_FILE --csv $CSV_FILE

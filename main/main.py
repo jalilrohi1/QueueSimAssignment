@@ -102,12 +102,24 @@ def run_simulation(args):
     sim.run(args.max_t)
 
     completions = sim.completions
-    w = ((sum(completions.values()) - sum(sim.arrivals[job_id] for job_id in completions))
-         / len(completions))
-    print(f"Average time spent in the system: {w}")
-    
+    if len(completions) > 0:
+    #w = ((sum(completions.values()) - sum(sim.arrivals_log[job_id] for job_id in completions))
+    #     / len(completions))
+    # Calculate average time spent only for completed jobs
+        completed_arrivals = [sim.arrivals_log[job_id] for job_id in completions]
+        w = (sum(completions.values()) - sum(completed_arrivals)) / len(completions)
+    else :
+        w = 0 # Prevent division by zero
 
+    print(f"Average time spent in the system: {w}")
+
+    if args.mu == 1 and args.lambd != 1:
+        W_T=1/(1-args.lambd)
+        print(f"Theoretical expectation for random server choice (d=1): {W_T}")    
+        val = 1 / (args.mu * (1 - (args.lambd / args.mu)))  # theoretical expectation for random choice
+        print(f"Theoretical2 expectation for random server choice: {val}")
     if args.csv is not None:
+        args.shape = args.shape if args.shape is not None else "None"
         with open(args.csv, 'a', newline='') as f:
             writer = csv.writer(f)
             # Write headers if file is empty
@@ -135,7 +147,7 @@ def main():
     args = parser.parse_args()
 
     if args.param_list:
-        logging.info(f"Running with parameter list: {args.param_list}")
+        logging.info(f"Running with specified parameter list: {args.param_list}")
         param_set = param_lists[args.param_list]
         for param in param_set:
             thread_args = argparse.Namespace(**param)

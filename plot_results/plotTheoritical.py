@@ -13,12 +13,14 @@ csv_file = args.csv
 data = pd.read_csv(csv_file, skiprows=1)
 
 # Assign column names based on the data structure
-data.columns = ['lambd', 'mu', 'max_t', 'n', 'd', 'w', 'queue_size',"quantum","weibull_shape"]
+data.columns = ['lambd', 'mu', 'max_t', 'n', 'd', 'w', 'queue_size', "quantum", "weibull_shape"]
 
 # Convert string representations of lists to actual lists
 data['queue_size'] = data['queue_size'].apply(eval)
-#data['waiting_times'] = data['waiting_times'].apply(eval)
-#data['server_utilizations'] = data['server_utilizations'].apply(eval)
+
+# Debug: Print the first few rows of the dataframe and the data types
+print(data.head())
+print(data.dtypes)
 
 # Define the range of queue sizes to consider
 queue_size_range = range(1, 21)
