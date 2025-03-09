@@ -9,7 +9,7 @@ def load_csv(file_path):
     return df
 
 # 📌 Plot: Effect of `d` on Queue Length for Different Weibull Shapes and `N` Values
-def plot_effect_of_d_for_shapes(df):
+def plot_effect_of_d_for_shapes(df, output_file):
     # Define the four `N` values for subplots
     n_values = [10, 20, 50, 100]
     
@@ -59,12 +59,14 @@ def plot_effect_of_d_for_shapes(df):
         ax.set_title(f"N = {n} Servers")
         ax.set_xticks(sorted(df_filtered["d"].unique()))  # Ensure all `d` values appear on X-axis
         ax.grid()
-        ax.legend(title="Weibull Shape")
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:  # Only add legend if there are labeled lines
+            ax.legend(title="Weibull Shape")
 
     # Adjust layout
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     #plt.show()
-    plt.savefig("effect_of_d_for_shapes.png")
+    plt.savefig(output_file)
 
 # 📌 Run Plot Function
 def main():
