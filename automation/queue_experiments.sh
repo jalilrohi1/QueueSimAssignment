@@ -11,7 +11,7 @@ CSV_FILE="./data/out.csv"
 SHAPE=None
 USE_RR=False
 QUANTUM=1
-PLOT_FILE="./plots/Theoritical_plot_rr.png"
+PLOT_FILE="./plots/Theoritical_plot.png"
 
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
