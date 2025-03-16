@@ -23,6 +23,7 @@ storage_sim/DS_Store
 storage_sim/server_client
 storage_sim/*.png
 storage_sim/storageSim.zip
+
 main/main2.py
 main/main1.py
 *.py[cod]
