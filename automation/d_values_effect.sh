@@ -46,11 +46,16 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Calculate total simulations to run
+total_runs=$((${#LAMBDA_VALUES[@]} * ${#D_VALUES[@]} * ${#SHAPE_VALUES[@]}))
+run_count=0
+
 # Run the experiment for each combination of d, n, and shape with lambda fixed at 0.7
 for D in "${D_VALUES[@]}"; do
   for N in "${N_VALUES[@]}"; do
     for SHAPE in "${SHAPE_VALUES[@]}"; do
-      echo "Running simulation with lambda=$LAMBDA, d=$D, n=$N, shape=$SHAPE, use_rr=$USE_RR, quantum=$QUANTUM"
+      run_count=$((run_count + 1))
+      echo "Running simulation $run_count of $total_runs: with lambda=$LAMBDA, d=$D, n=$N, shape=$SHAPE, use_rr=$USE_RR, quantum=$QUANTUM"
       if [ "$USE_RR" = True ]; then
         python3 ./main/main.py --lambd "$LAMBDA" --mu "$MU" --d "$D" --n "$N" --csv "$CSV_FILE" --monitor-interval "$MONITOR_INTERVAL" --max-t "$MAX_T" --shape "$SHAPE" --use-rr --quantum "$QUANTUM"
       else
@@ -59,5 +64,6 @@ for D in "${D_VALUES[@]}"; do
     done
   done
 done
-
+echo "All simulations completed."
+echo "Plotting results...{PLOT_FILE}"
 python3 ./plot_results/plot_effect_D_for_n_shapes.py --output "$PLOT_FILE" --csv "$CSV_FILE"

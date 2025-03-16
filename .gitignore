@@ -21,6 +21,7 @@ storage_sim/plots2
 storage_sim/plots50y
 storage_sim/DS_Store
 storage_sim/server_client
+storage_sim/*.png
 
 main/main2.py
 main/main1.py

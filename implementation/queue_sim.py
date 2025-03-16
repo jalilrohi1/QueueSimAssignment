@@ -65,7 +65,7 @@ class Queues(Simulation):
         self.n = n
         self.d = d
         self.mu = mu
-        self.arrival_rate = lambd / n  # frequency of new jobs is proportional to the number of queues
+        self.arrival_rate = lambd * n  # frequency of new jobs is proportional to the number of queues
         self.queue_size_log = []  # Initialize queue_size_log
         #self.waiting_time_log = []  # Initialize waiting time log
         #self.server_utilization_log = []  # Initialize server utilization log

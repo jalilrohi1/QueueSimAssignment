@@ -31,15 +31,16 @@ class Simulation:
 
     def run(self, max_t=float('inf')):
         """Run the simulation. If max_t is specified, stop it at that time."""
-        #logging.info(f"Simulation starting. max_t={max_t}") # Log simulation start
+        logging.info(f"Simulation starting. max_t={max_t}") # Log simulation start
         while self.events and self.t < max_t:  #Done TODO: as long as the event queue is not empty:
             t, event = heapq.heappop(self.events) #Done TODO: get the first event from the queue
             if t > max_t:
                 break
             self.t = t
-            #logging.info(f"Processing event '{type(event).__name__}' at time {self.t:.2f}") #Log event processing
+            logging.info(f"Processing event '{type(event).__name__}' at time {self.t:.2f}") #Log event processing
             event.process(self)
-        #logging.info(f"Simulation finished at time {self.t:.2f}") #Log simulation end
+        logging.info(f"Simulation finished at time {self.t:.2f}") #Log simulation end
+        
     def log_info(self, msg):
         logging.info(f'{self.t:.2f}: {msg}')
 
