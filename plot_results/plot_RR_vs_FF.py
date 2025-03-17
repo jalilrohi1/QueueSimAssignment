@@ -1,3 +1,4 @@
+import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 
@@ -7,7 +8,7 @@ def load_csv(file_path):
     return df
 
 # 📌 Plot: Round-Robin vs FIFO for Different Weibull Shapes
-def plot_rr_vs_fifo(df):
+def plot_rr_vs_fifo(df, output_file):
     plt.figure(figsize=(8, 6))
 
     # Filter data where λ, μ, N, d remain constant
@@ -39,14 +40,17 @@ def plot_rr_vs_fifo(df):
     plt.title("Round-Robin vs FIFO for Different Weibull Shapes")
     plt.grid()
     plt.legend(title="Quantum (Time Slice)")
-    plt.show()
+    plt.savefig(output_file)
 
 # 📌 Run Plot Function
 def main():
-    file_path = "results_rr.csv"  # Change to your actual CSV file name
-    df = load_csv(file_path)
+    parser = argparse.ArgumentParser(description='Plot results from a CSV file.')
+    parser.add_argument('--csv', type=str, required=True, help='Path to the input CSV file.')
+    parser.add_argument('--output', type=str, required=True, help='Path to the output image file.')
+    args = parser.parse_args()
 
-    plot_rr_vs_fifo(df)
+    df = load_csv(args.csv)
+    plot_rr_vs_fifo(df, args.output)
 
 if __name__ == "__main__":
     main()
