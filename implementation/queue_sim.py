@@ -101,6 +101,7 @@ class Queues(Simulation):
         else:
             sample_queues = sample(range(self.n), self.d)
             return min(sample_queues, key=lambda i: len(self.queues[i]))
+        
     def schedule_arrival(self, job_id):
         self.schedule(self.generate_interarrival_time(), Arrival(job_id))
 
