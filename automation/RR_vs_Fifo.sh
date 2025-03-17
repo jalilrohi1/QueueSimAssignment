@@ -3,7 +3,7 @@
 # Define output CSV file
 OUTPUT_FILE="./data/RR_vs_Fifo.csv"
 # Define output plot file
-PLOT_FILE="./plots/Effect_of_D.png"
+PLOT_FILE="./plots/RR_vs_Fifo.png"
 # Ensure the file starts with a header
 echo "lambd,mu,max_t,n,d,w,queue_size,quantum,weibull_shape" > $OUTPUT_FILE
 
