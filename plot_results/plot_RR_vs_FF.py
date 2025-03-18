@@ -2,61 +2,77 @@ import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# 📌 Load CSV File
+#  Load CSV File
 def load_csv(file_path):
     df = pd.read_csv(file_path)
     return df
 
-# 📌 Plot: Round-Robin vs FIFO for Different Weibull Shapes
+# Plot: Round-Robin vs FIFO for Different Weibull Shapes and Server Counts
 def plot_rr_vs_fifo(df, output_file):
-    plt.figure(figsize=(8, 6))
-
-    # Filter data where λ, μ, N, d remain constant
+    # Filter data for constant parameters: λ, μ, d are fixed.
+    # We will vary n (number of servers).
+    # We'll assume LAMBDA=0.5, MU=1, d=5 are fixed in our simulation.
     df_filtered = df[
-        (df["lambd"] == 0.5) &  # Keeping λ constant (adjust as needed)
-        (df["mu"] == 1) & 
-        (df["n"] == 10) & 
+        (df["lambd"] == 0.5) &
+        (df["mu"] == 1) &
         (df["d"] == 5)
     ]
-
     if df_filtered.empty:
-        print("⚠️ No matching data found! Check CSV values.")
+        print("No matching data found! Check CSV values.")
         return
 
-    # Define FIFO quantum value (a very large number, e.g., 100000)
+    # Define server counts (n) to plot.
+    server_values = sorted(df_filtered["n"].unique())
+    num_plots = len(server_values)
+    
+    # Create subplots: we'll arrange in a 2x2 grid if 4 server counts.
+    rows = cols = 2 if num_plots > 1 else 1
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 5, rows * 4), squeeze=False)
+    fig.suptitle("Round-Robin vs FIFO for Different Weibull Shapes\n(Varying Number of Servers)", fontsize=14)
+
     FIFO_QUANTUM = 100000
 
-    # Separate FIFO data (quantum equals FIFO_QUANTUM) and Round-Robin data
-    df_fifo = df_filtered[df_filtered["quantum"] == FIFO_QUANTUM]
-    df_rr = df_filtered[df_filtered["quantum"] != FIFO_QUANTUM]
+    # Loop over each server count (each subplot)
+    for idx, n in enumerate(server_values):
+        ax = axes[idx // cols][idx % cols]
+        df_n = df_filtered[df_filtered["n"] == n]
 
-    # Plot Round-Robin results (for each quantum value)
-    rr_quantum_values = sorted(df_rr["quantum"].unique())
-    for quantum in rr_quantum_values:
-        df_quantum = df_rr[df_rr["quantum"] == quantum]
-        weibull_shapes = df_quantum["weibull_shape"]
-        avg_times = df_quantum["w"]
-        plt.plot(weibull_shapes, avg_times, marker='o', linestyle='-', label=f"Quantum={quantum}")
+        # Separate FIFO and Round-Robin data
+        df_fifo = df_n[df_n["quantum"] == FIFO_QUANTUM]
+        df_rr = df_n[df_n["quantum"] != FIFO_QUANTUM]
 
-    # Plot FIFO data as one line
-    if not df_fifo.empty:
-        fifo_weibull_shapes = df_fifo["weibull_shape"]
-        fifo_avg_times = df_fifo["w"]
-        plt.plot(fifo_weibull_shapes, fifo_avg_times, marker='s', linestyle='--', color='black', label="FIFO")
+        # Plot Round-Robin data: one line per quantum value
+        rr_quantum_values = sorted(df_rr["quantum"].unique())
+        for quantum in rr_quantum_values:
+            df_quantum = df_rr[df_rr["quantum"] == quantum]
+            # For each quantum value, x-axis: Weibull shape, y-axis: average time (w)
+            ax.plot(df_quantum["weibull_shape"], df_quantum["w"], marker='o', linestyle='-', label=f"RR Q={quantum}")
 
-    plt.xlabel("Weibull Shape")
-    plt.ylabel("Average Time in System (W)")
-    plt.title("Round-Robin vs FIFO for Different Weibull Shapes")
-    plt.grid()
-    plt.legend(title="Scheduling Method")
+        # Plot FIFO data as one line (if available)
+        if not df_fifo.empty:
+            ax.plot(df_fifo["weibull_shape"], df_fifo["w"], marker='s', linestyle='--', color='black', label="FIFO")
+
+        ax.set_xlabel("Weibull Shape")
+        ax.set_ylabel("Avg. Time in System (W)")
+        ax.set_title(f"Servers (n) = {n}")
+        ax.grid(True)
+        ax.legend()
+
+    # If there are unused subplots, remove them.
+    total_subplots = rows * cols
+    if num_plots < total_subplots:
+        for i in range(num_plots, total_subplots):
+            fig.delaxes(axes[i // cols][i % cols])
+            
+    plt.tight_layout(rect=[0, 0, 1, 0.95])
     plt.savefig(output_file)
     plt.close()
 
-# 📌 Run Plot Function
+# Run Plot Function
 def main():
-    parser = argparse.ArgumentParser(description='Plot results from a CSV file.')
-    parser.add_argument('--csv', type=str, required=True, help='Path to the input CSV file.')
-    parser.add_argument('--output', type=str, required=True, help='Path to the output image file.')
+    parser = argparse.ArgumentParser(description="Plot Round-Robin vs FIFO results for different server counts.")
+    parser.add_argument('--csv', type=str, required=True, help="Path to the input CSV file.")
+    parser.add_argument('--output', type=str, required=True, help="Path to the output image file.")
     args = parser.parse_args()
 
     df = load_csv(args.csv)
