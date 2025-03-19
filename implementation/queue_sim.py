@@ -117,7 +117,6 @@ class Queues(Simulation):
         else:
             self.schedule(remaining_time, CompletionRR(job_id, queue_index, 0))  # Removed is_interruption
 
-
     def queue_len(self, i):
         """Return the length of the i-th queue.
         
@@ -134,7 +133,7 @@ class Arrival(Event):
         queue_index = sim.supermarket_decision() if sim.d > 1 else randrange(sim.n)
         
         #print(f"[Time {sim.t:.2f}] Job {self.id} arrived at queue {queue_index}, queue length: {len(sim.queues[queue_index])}")    
-        if sim.running[queue_index] is None:
+        if sim.running[queue_index] is None: # If the queue is empty, start the job
             execution_time = sim.generate_service_time()
             sim.running[queue_index] = (self.id, execution_time) if sim.use_rr else self.id
             sim.schedule_completion(self.id, queue_index, execution_time)
