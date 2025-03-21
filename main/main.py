@@ -101,23 +101,43 @@ def run_simulation(args):
     sim = Queues(args.lambd, args.mu, args.n, args.d, args.use_rr, args.quantum, args.monitor_interval, args.shape)
     sim.run(args.max_t)
 
+
+    completions = sim.completions
+    arrivals_log = sim.arrivals_log
+
+    if len(arrivals_log) > 0:
+        # Calculate time for completed jobs
+        completed_w = [completions[job_id] - arrivals_log[job_id] for job_id in completions]
+        # Calculate time for pending jobs (up to simulation end time)
+        pending_jobs = [job_id for job_id in arrivals_log if job_id not in completions]
+        pending_w = [sim.t - arrivals_log[job_id] for job_id in pending_jobs]
+        # Combine and average
+        total_w = completed_w + pending_w
+        w = sum(total_w) / len(total_w)
+    else:
+        w = 0  # No jobs arrived
+
+    print(f"Average time spent in the system: {w}")
+
+
     completions = sim.completions
     if len(completions) > 0:
-    #w = ((sum(completions.values()) - sum(sim.arrivals_log[job_id] for job_id in completions))
-    #     / len(completions))
+        w2 = ((sum(completions.values()) - sum(sim.arrivals_log[job_id] for job_id in completions))
+         / len(completions))
     # Calculate average time spent only for completed jobs
-        completed_arrivals = [sim.arrivals_log[job_id] for job_id in completions]
+        completed_arrivals = [sim.arrivals[job_id] for job_id in completions]
         w = (sum(completions.values()) - sum(completed_arrivals)) / len(completions)
     else :
         w = 0 # Prevent division by zero
-
+        
+    print(f"Average time spent in the system for completed jobs: {w2}")
     print(f"Average time spent in the system: {w}")
 
     if args.mu == 1 and args.lambd != 1:
         W_T=1/(1-args.lambd)
         print(f"Theoretical expectation for random server choice (d=1): {W_T}")    
-        val = 1 / (args.mu * (1 - (args.lambd / args.mu)))  # theoretical expectation for random choice
-        print(f"Theoretical2 expectation for random server choice: {val}")
+        #val = 1 / (args.mu * (1 - (args.lambd / args.mu)))  # theoretical expectation for random choice
+        #print(f"Theoretical2 expectation for random server choice: {val}")
     if args.csv is not None:
         args.shape = args.shape if args.shape is not None else "None"
         with open(args.csv, 'a', newline='') as f:

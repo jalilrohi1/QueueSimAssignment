@@ -3,6 +3,7 @@
 import argparse
 import csv
 import collections
+import heapq
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
@@ -34,14 +35,8 @@ class MonitorQueueSizes(Event):
         self.interval = interval
 
     def process(self, sim: 'Queues'):
-        queue_lengths = [sim.queue_len(i) for i in range(sim.n)]
-        #waiting_times = [sim.calculate_waiting_time(i) for i in range(sim.n)]
-        #server_utilization = [sim.calculate_server_utilization(i) for i in range(sim.n)]
-        
+        queue_lengths = [sim.queue_len(i) for i in range(sim.n)]       
         sim.queue_size_log.append(queue_lengths)
-        #sim.waiting_time_log.append(waiting_times)
-        #sim.server_utilization_log.append(server_utilization)
-        #print(f"Queue lengths: {[len(q) for q in sim.queues]}")
         sim.schedule(self.interval, self)
 
 class Queues(Simulation):
@@ -54,8 +49,10 @@ class Queues(Simulation):
 
     def __init__(self, lambd, mu, n, d,use_rr=False, quantum=1, monitor_interval=1, shape=None):
         super().__init__()
-        self.running = [None] * n  # if not None, the id of the running job (per queue)
-        #self.running = [(None, None)] * n  # (job_id, remaining_time) for Round Robin
+        #self.running = [None] * n  # if not None, the id of the running job (per queue)
+        self.running = [None for _ in range(n)]  # if not None, the id of the running job
+        heapq.heapify(self.events)  # treat the list as a heap
+        #self.running = [(None, None) for _ in range(n)]  # (job_id, remaining_time) for Round Robin
         self.queues = [collections.deque() for _ in range(n)]  # FIFO queues of the system
         # NOTE: we don't keep the running jobs in self.queues
         self.arrivals = {}  # dictionary mapping job id to arrival time
@@ -77,18 +74,7 @@ class Queues(Simulation):
         self.schedule(self.generate_interarrival_time(), Arrival(0)) # schedule the first arrival
         self.schedule(0, MonitorQueueSizes(monitor_interval))
     
-    def calculate_waiting_time(self, queue_index):
-        queue = self.queues[queue_index]
-        if queue:
-            total_waiting_time = sum(self.t - self.arrivals[job_id] for job_id in queue)
-            return total_waiting_time / len(queue)
-        return 0
 
-    def calculate_server_utilization(self, server_index):
-        if self.running[server_index] is not None:
-            return 1  # Server is busy
-        return 0  # Server is idle
-        
     def generate_interarrival_time(self):
         return weibull_generator(self.shape, 1 / (self.lambd*self.n))() if self.shape else expovariate(self.lambd * self.n)
 
@@ -112,10 +98,11 @@ class Queues(Simulation):
             self.schedule(execution_time, Completion(job_id, queue_index))  # Removed remaining_time and is_interruption
 
     def schedule_completion_rr(self, job_id, queue_index, remaining_time):
+        #self.schedule(self.quantum, CompletionRR(job_id, queue_index, max(0, remaining_time - self.quantum)))
         if remaining_time > self.quantum:
-            self.schedule(self.quantum, CompletionRR(job_id, queue_index, remaining_time - self.quantum))
+             self.schedule(self.quantum, CompletionRR(job_id, queue_index, remaining_time - self.quantum))
         else:
-            self.schedule(remaining_time, CompletionRR(job_id, queue_index, 0))  # Removed is_interruption
+             self.schedule(remaining_time, CompletionRR(job_id, queue_index, 0))  # Removed is_interruption
 
     def queue_len(self, i):
         """Return the length of the i-th queue.
@@ -128,8 +115,8 @@ class Arrival(Event):
         self.id = job_id
 
     def process(self, sim: Queues):
-        sim.arrivals[self.id] = sim.t
-        sim.arrivals_log[self.id] = sim.t
+        sim.arrivals[self.id] = sim.t       # Record arrival time for all jobs
+        sim.arrivals_log[self.id] = sim.t   # Record arrival time for all jobs
         queue_index = sim.supermarket_decision() if sim.d > 1 else randrange(sim.n)
         
         #print(f"[Time {sim.t:.2f}] Job {self.id} arrived at queue {queue_index}, queue length: {len(sim.queues[queue_index])}")    
@@ -149,17 +136,18 @@ class Completion(Event):
 
     def process(self, sim: Queues):
         queue_index = self.queue_index
-
+        assert sim.running[queue_index] == self.job_id
         # Record completion time for non-RR jobs
+
         sim.completions[self.job_id] = sim.t
 
-        queue = sim.queues[queue_index]
-        if queue:
+        queue:collections.deque[int] = sim.queues[queue_index]
+        if queue: # If the queue is not empty, start the next job
             new_job_id = queue.popleft()  # Removed new_execution_time
             new_execution_time = sim.generate_service_time()  # Generate new service time here
             sim.running[queue_index] = new_job_id
             sim.schedule_completion(new_job_id, queue_index, new_execution_time)
-        else:
+        else: 
             sim.running[queue_index] = None
 
 class CompletionRR(Event):
@@ -172,20 +160,24 @@ class CompletionRR(Event):
         queue_index = self.queue_index
         current_job = sim.running[queue_index]
 
-        # Record completion time for truly completed jobs
+            # If job is fully complete, record its completion time.
         if self.remaining_time == 0:
             sim.completions[self.job_id] = sim.t
-
-        queue = sim.queues[queue_index]
-        if queue:
-            # Add the current job back to the queue with updated remaining time
-            if self.remaining_time > 0:
+        else:
+            # If the queue is empty, resume the same job immediately.
+            if not sim.queues[queue_index]:
+                sim.schedule_completion(self.job_id, queue_index, self.remaining_time)
+                return
+            else:
+                # Otherwise, requeue the unfinished job.
                 sim.queues[queue_index].append((self.job_id, self.remaining_time))
- 
-            # Select the next job from the queue
-            new_job = queue.popleft()
+        
+        # If there is another job waiting, pick it from the queue.
+        if sim.queues[queue_index]:
+            new_job = sim.queues[queue_index].popleft()
             new_job_id, new_execution_time = new_job
             sim.running[queue_index] = (new_job_id, new_execution_time)
             sim.schedule_completion(new_job_id, queue_index, new_execution_time)
         else:
             sim.running[queue_index] = None
+
