@@ -17,8 +17,7 @@ storage_sim/myenv
 storage_sim/newplots
 storage_sim/plots/*
 storage_sim/plots_old/*
-storage_sim/plots2
-storage_sim/plots50y/*
+storage_sim/plots123/*
 storage_sim/DS_Store/*
 storage_sim/server_client/*
 storage_sim/*.png
