@@ -37,7 +37,7 @@ class Simulation:
             if t > max_t:
                 break
             self.t = t
-            logging.info(f"Processing event '{type(event).__name__}' at time {self.t:.2f}") #Log event processing
+            #logging.info(f"Processing event '{type(event).__name__}' at time {self.t:.2f}") #Log event processing
             event.process(self)
         logging.info(f"Simulation finished at time {self.t:.2f}") #Log simulation end
         

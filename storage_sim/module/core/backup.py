@@ -3,7 +3,6 @@ from typing import List
 
 from humanfriendly import format_timespan
 from libs.discrete_event_sim import Simulation
-from .node import Node
 from ..utils.events import Online, Fail, BlockBackupComplete, BlockRestoreComplete,exp_rv,LogBandwidthWaste
 class Backup(Simulation):
     """Backup simulation.

@@ -83,5 +83,6 @@ for d in "${D_VALUES[@]}"; do
 done
 
 echo "All simulations completed."
-echo "Plotting results...{PLOT_FILE}"
+echo "Plotting results...{$PLOT_FILE}"
 python3 ./plot_results/plot_effect_lambda_for_D_shapes.py --output "$PLOT_FILE" --csv "$CSV_FILE"
+echo "Plotting complete. Results saved to $PLOT_FILE"

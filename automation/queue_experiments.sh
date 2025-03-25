@@ -7,11 +7,11 @@ MU=1
 N=10
 MAX_T=100000
 MONITOR_INTERVAL=10
-CSV_FILE="./data/out.csv"
+CSV_FILE="./data/plot_theoritical_FF.csv"
 SHAPE=None
 USE_RR=False
 QUANTUM=1
-PLOT_FILE="./plots/Theoritical_plot.png"
+PLOT_FILE="./plots/Theoritical_plot_FF.png"
 
 # Parse command-line arguments
 while [[ "$#" -gt 0 ]]; do
@@ -32,10 +32,15 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Calculate total simulations to run
+total_runs=$((${#LAMBDA_VALUES[@]} * ${#D_VALUES[@]} * ${#SHAPE_VALUES[@]}))
+run_count=0
+
 # Run the experiment for each combination of lambda and d
 for LAMBD in "${LAMBDA_VALUES[@]}"; do
   for D in "${D_VALUES[@]}"; do
-    echo "Running simulation with lambda=$LAMBD, d=$D, shape=$SHAPE, use_rr=$USE_RR, quantum=$QUANTUM"
+    run_count=$((run_count + 1))
+    echo "Running simulation $run_count of $total_runs: with lambda=$LAMBD, d=$D, shape=$SHAPE, use_rr=$USE_RR, quantum=$QUANTUM"
     if [ "$SHAPE" != "None" ]; then
       if [ "$USE_RR" = True ]; then
         python3 ./main/main.py --lambd $LAMBD --mu $MU --d $D --n $N --csv $CSV_FILE --monitor-interval $MONITOR_INTERVAL --max-t $MAX_T --shape $SHAPE --use-rr --quantum $QUANTUM
@@ -52,4 +57,7 @@ for LAMBD in "${LAMBDA_VALUES[@]}"; do
   done
 done
 
+echo "All simulations completed."
+echo "Plotting results...{$PLOT_FILE}"
 python3 ./plot_results/plotTheoritical.py --output $PLOT_FILE --csv $CSV_FILE
+echo "Plotting complete. Results saved to $PLOT_FILE"

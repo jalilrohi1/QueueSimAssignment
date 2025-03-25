@@ -4,7 +4,7 @@
 LAMBDA=0.5
 D=5
 MU=1
-MAX_T=10000
+MAX_T=1000
 MONITOR_INTERVAL=10
 # Round-Robin quantum values
 QUANTUM_VALUES=(0.1 0.5 1 2 5)
@@ -16,8 +16,8 @@ N_VALUES=(10 20 50 100)
 FIFO_QUANTUM=100000
 
 # Output CSV file
-OUTPUT_FILE="./data/RR_vs_Fifo_servers.csv"
-PLOT_FILE="./plots/RR_vs_FF_server.png"
+OUTPUT_FILE="./data/RR_vs_Fifo_servers3.csv"
+PLOT_FILE="./plots/RR_vs_FF_server3.png"
 # Ensure output directory exists
 mkdir -p ./data
 # Write CSV header
@@ -56,4 +56,4 @@ done
 echo "All simulations completed."
 echo "Plotting results... Output file: $PLOT_FILE"
 python3 ./plot_results/plot_RR_vs_FF.py --output "$PLOT_FILE" --csv "$OUTPUT_FILE"
-echo "Plotting complete."
+echo "Plotting complete. Results saved to $PLOT_FILE"

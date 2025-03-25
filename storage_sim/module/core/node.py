@@ -2,8 +2,8 @@
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-if TYPE_CHECKING:
-    from .backup import Backup  # only used for type checking
+#if TYPE_CHECKING:
+#    from .backup import Backup  # only used for type checking
 
 from ..utils.events import TransferComplete
 
