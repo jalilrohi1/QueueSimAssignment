@@ -4,16 +4,23 @@ import logging
 import random
 import sys
 import os
-
+import csv
+import numpy as np
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-
-
+from core.backup import Backup
+from humanfriendly import parse_size, parse_timespan
 from core.node import Node
-from  .core.backup import Backup
-from humanfriendly import format_timespan, parse_size, parse_timespan
-logging.getLogger('matplotlib').setLevel(logging.WARNING)  # suppress matplotlib logging
+
+
+def save_to_csv(filename, data, headers):
+    """Save data to a CSV file."""
+    with open(filename, mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(headers)
+        writer.writerows(data)
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -45,55 +52,27 @@ def main():
     nodes = []  # we build the list of nodes to pass to the Backup class
     for node_class in config.sections():
         class_config = config[node_class]
-        # list comprehension: https://docs.python.org/3/tutorial/datastructures.html#list-comprehensions
         cfg = [parse(class_config[name]) for name, parse in parsing_functions]
-        # the `callable(p1, p2, *args)` idiom is equivalent to `callable(p1, p2, args[0], args[1], ...)
         nodes.extend(Node(f"{node_class}-{i}", *cfg) for i in range(class_config.getint('number')))
-    sim = Backup(nodes,parallel_up_down=args.parallel)
+    sim = Backup(nodes, parallel_up_down=args.parallel)
     sim.run(parse_timespan(args.max_t))
     sim.log_info(f"Simulation over")
 
-    import numpy as np
-    from utils.plot_utils import (
-        plot_bandwidth_waste,
-        plot_smoothed_bandwidth_waste,
-        plot_data_transfers,
-        plot_used_vs_wasted_bandwidth,
-        plot_bandwidth_waste_distribution,
-        plot_failures_vs_bandwidth_waste,
-        plot_failures_vs_bandwidth_waste_with_availability,
-        plot_used_vs_wasted_bandwidth_dual_axis
-    )
-
-    # Convert seconds to years
+    # Save simulation data to CSV files
     times = np.array([t / (365 * 24 * 60 * 60) for t in sim.up_bw_wasted.keys()])
     upload_waste = np.array(list(sim.up_bw_wasted.values()))
     download_waste = np.array(list(sim.dw_bw_wasted.values()))
-
     transfer_times = np.array([t / (365 * 24 * 60 * 60) for t in sim.transfer_counts.keys()])
     transfer_counts = np.array(list(sim.transfer_counts.values()))
 
-    # Compute used bandwidth
-    used_bandwidth = upload_waste + download_waste
-    wasted_bandwidth = upload_waste + download_waste
+    save_to_csv("bandwidth_waste.csv", zip(times, upload_waste, download_waste), ["Time (years)", "Upload Waste", "Download Waste"])
+    save_to_csv("data_transfers.csv", zip(transfer_times, transfer_counts), ["Time (years)", "Transfer Counts"])
 
-    # Only access `failure_events` if it exists
     if hasattr(sim, "failure_events") and sim.failure_events:
         failure_times = np.array([t / (365 * 24 * 60 * 60) for t in sim.failure_events.keys()])
         failure_counts = np.array(list(sim.failure_events.values()))
+        save_to_csv("failures.csv", zip(failure_times, failure_counts), ["Time (years)", "Failure Counts"])
 
-        # Generate plots including failures
-        plot_failures_vs_bandwidth_waste(failure_times, failure_counts, times, upload_waste, download_waste)
-
-    # Generate standard plots
-    plot_bandwidth_waste(times, upload_waste, download_waste)
-    plot_smoothed_bandwidth_waste(times, upload_waste, download_waste)
-    plot_data_transfers(transfer_times, transfer_counts)
-    plot_used_vs_wasted_bandwidth(times, used_bandwidth, wasted_bandwidth)
-    plot_bandwidth_waste_distribution(upload_waste, download_waste)
-    plot_used_vs_wasted_bandwidth_dual_axis(times, used_bandwidth, wasted_bandwidth)
-    plot_failures_vs_bandwidth_waste_with_availability(failure_times, failure_counts, times, upload_waste, download_waste, sim.online_nodes)
-
-
+ 
 if __name__ == '__main__':
     main()

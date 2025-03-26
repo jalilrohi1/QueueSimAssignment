@@ -1,16 +1,23 @@
 
+from __future__ import annotations
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, List, Optional
 
-#if TYPE_CHECKING:
-#    from .backup import Backup  # only used for type checking
+if TYPE_CHECKING:
+    from .backup import Backup  # only used for type checking
 
-from ..utils.events import TransferComplete
-
+from .events import TransferComplete
 
 @dataclass(eq=False)  # auto initialization from parameters below (won't consider two nodes with same state as equal)
 class Node:
     """Class representing the configuration of a given node."""
+
+    # using dataclass is (for our purposes) equivalent to having something like
+    # def __init__(self, description, n, k, ...):
+    #     self.n = n
+    #     self.k = k
+    #     ...
+    #     self.__post_init__()  # if the method exists
 
     name: str  # the node's name
 
@@ -66,9 +73,9 @@ class Node:
         self.current_uploads: List[TransferComplete] = []
         self.current_downloads: List[TransferComplete] = []
         
-        self.available_bw_upload: float = self.upload_speed  # Set initial upload bandwidth
+        self.available_bw_upload: float = self.upload_speed  # Set initial upload bandwidth      
         self.available_bw_download: float = self.download_speed  # Set initial download bandwidth
-        
+
         self.successful_transfers: int = 0  # Tracks successful transfers
 
 
@@ -97,8 +104,12 @@ class Node:
         assert self.online
 
         # If parallel transfers are disabled and there’s already an active upload, do nothing.
-        if not sim.parallel_up_down and self.current_uploads:
-            return False
+        if sim.parallel_up_down:
+            if self.available_bw_upload == 0:
+                return False
+        else:
+            if self.current_uploads:
+                return False
 
         # First, attempt to restore a missing block from a peer.
         for peer in self.rank_peers():
@@ -106,7 +117,9 @@ class Node:
             # Ensure block_id is valid and the block is missing locally.
             if block_id is None or block_id >= len(self.local_blocks):
                 continue
-            if not self.local_blocks[block_id] and peer.online and not peer.current_downloads:
+            
+            if not self.local_blocks[block_id] and peer.online and peer.available_bw_download > 0:
+            # if not self.local_blocks[block_id] and peer.online and not peer.current_downloads:
                 sim.schedule_transfer(peer, self, block_id, restore=True)
                 return True
 

@@ -1,9 +1,20 @@
 import logging
+from random import expovariate
 from typing import List
 
 from humanfriendly import format_timespan
-from libs.discrete_event_sim import Simulation
-from ..utils.events import Online, Fail, BlockBackupComplete, BlockRestoreComplete,exp_rv,LogBandwidthWaste
+from .discrete_event_sim import Simulation
+from .events import LogBandwidthWaste, Online, Fail, BlockBackupComplete, BlockRestoreComplete, DataLost
+#from .node import exp_rv
+
+def exp_rv(mean):
+    """Return an exponential random variable with the given mean."""
+    return expovariate(1 / mean)
+
+
+class DataLost(Exception):
+    """Not enough redundancy in the system, data is lost. We raise this exception to stop the simulation."""
+    pass
 class Backup(Simulation):
     """Backup simulation.
     """
@@ -47,19 +58,26 @@ class Backup(Simulation):
 
         effective_upload_speed = uploader.upload_speed / uploader_active
         effective_download_speed = downloader.download_speed / downloader_active
-
-        speed = min(effective_upload_speed, effective_download_speed)
+        speed = min(uploader.available_bw_upload, downloader.available_bw_download)
+        if speed <= 0:
+            #assert speed > 0, "No available bandwidth for transfer"
+            #logging.info("No Available Bandwidth for transfer")
+            return
+        
+        uploader.available_bw_upload -= speed
+        downloader.available_bw_download -= speed
+        #speed = min(effective_upload_speed, effective_download_speed)
         delay = block_size / speed
 
         # NEW CODE: Decrement the node's available bandwidth
-        uploader.available_bw_upload = max(0, uploader.available_bw_upload - speed)
-        downloader.available_bw_download = max(0, downloader.available_bw_download - speed)
+        #uploader.available_bw_upload = max(0, uploader.available_bw_upload - speed)
+        #downloader.available_bw_download = max(0, downloader.available_bw_download - speed)
 
         # Create transfer event (either backup or restore)
         if restore:
-            event = BlockRestoreComplete(uploader, downloader, block_id)
+            event = BlockRestoreComplete(uploader, downloader, block_id,speed)
         else:
-            event = BlockBackupComplete(uploader, downloader, block_id)
+            event = BlockBackupComplete(uploader, downloader, block_id,speed)
 
         self.schedule(delay, event)
 

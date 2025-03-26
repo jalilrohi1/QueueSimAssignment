@@ -1,19 +1,19 @@
 
 from __future__ import annotations
 from random import expovariate  # For forward references
-from ..core.backup import Backup  # Import Backup if needed
 from dataclasses import dataclass
-from typing import Optional, List
-from ..core.node import Node
+from .discrete_event_sim import Event
+
 
 def exp_rv(mean):
     """Return an exponential random variable with the given mean."""
     return expovariate(1 / mean)
 
-
 class DataLost(Exception):
     """Not enough redundancy in the system, data is lost. We raise this exception to stop the simulation."""
     pass
+
+
 
 class LogBandwidthWaste:
     """A periodic event that logs bandwidth waste at fixed intervals."""
@@ -59,13 +59,6 @@ class Online(NodeEvent):
         node.available_bw_download = node.download_speed
         
         # schedule next upload and download
-        #node.schedule_next_upload(sim)
-        #node.schedule_next_download(sim)
-        
-        #Reset bandwidth when a node comes online
-        node.available_bw_upload = node.upload_speed
-        node.available_bw_download = node.download_speed
-        
         node.schedule_next_uploads(sim)
         node.schedule_next_downloads(sim)
         
@@ -83,15 +76,10 @@ class Recover(Online):
         node = self.node
         sim.log_info(f"{node} recovers")
         node.failed = False
-        node.online = True  # Ensure node is set online
-        
-        # Reset bandwidth for a recovering node
-        node.available_bw_upload = node.upload_speed
-        node.available_bw_download = node.download_speed
-        
-        node.schedule_next_uploads(sim)  # Schedule multiple uploads
-        node.schedule_next_downloads(sim)  # Schedule multiple downloads
-        #super().process(sim)
+        # Reset Storage
+        self.node.free_space = self.node.storage_size - self.node.block_size * self.node.n
+
+        super().process(sim)
         sim.schedule(exp_rv(node.average_lifetime), Fail(node))
 
 
@@ -191,6 +179,7 @@ class TransferComplete(Event):
     uploader: Node
     downloader: Node
     block_id: int
+    speed: float
     canceled: bool = False
 
     def __post_init__(self):
@@ -207,6 +196,10 @@ class TransferComplete(Event):
         self.uploader.successful_transfers += 1
         self.downloader.successful_transfers += 1
         
+        
+        # once the transfer is finished, bandwidth used is given back to peers
+        uploader.available_bw_upload += self.speed ###llllllllllll
+        downloader.available_bw_download += self.speed ###llllllllllll
         #Register bandwidth waste at each transfer completion
         sim.register_bw_waste(sim.t)
         
@@ -221,8 +214,8 @@ class TransferComplete(Event):
         if self in downloader.current_downloads:
             downloader.current_downloads.remove(self)
 
-        uploader.schedule_next_upload(sim)
-        downloader.schedule_next_download(sim)
+        uploader.schedule_next_upload(sim) ####ttttttt
+        downloader.schedule_next_download(sim)####ttttttt
         
 
         
@@ -252,6 +245,6 @@ class BlockRestoreComplete(TransferComplete):
         owner.local_blocks[self.block_id] = True
         if sum(owner.local_blocks) == owner.k:  # we have exactly k local blocks, we have all of them then
             # Optionally, log that the node's data has been fully restored.
-            pass
-
+            #pass
+            owner.local_blocks = [True] * owner.n ###lllllllllllll
 
