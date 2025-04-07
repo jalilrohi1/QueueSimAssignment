@@ -19,9 +19,15 @@ FIFO_QUANTUM=100000
 OUTPUT_FILE="./data/RR_vs_Fifo_servers3.csv"
 PLOT_FILE="./plots/RR_vs_FF_server3.png"
 # Ensure output directory exists
-mkdir -p ./data
+
+# Add this after the parameters declaration and before running simulations
+# Create directories if they don't exist
+mkdir -p "$(dirname "$CSV_FILE")"
+mkdir -p "$(dirname "$PLOT_FILE")"
 # Write CSV header
 echo "lambd,mu,max_t,n,d,w,queue_size,quantum,weibull_shape" > "$OUTPUT_FILE"
+
+
 
 total_runs=0
 

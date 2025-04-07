@@ -46,6 +46,11 @@ while [[ "$#" -gt 0 ]]; do
     shift
 done
 
+# Add this after the parameters declaration and before running simulations
+# Create directories if they don't exist
+mkdir -p "$(dirname "$CSV_FILE")"
+mkdir -p "$(dirname "$PLOT_FILE")"
+
 # Calculate total simulations to run
 total_runs=$((${#N_VALUES[@]} * ${#D_VALUES[@]} * ${#SHAPE_VALUES[@]}))
 run_count=0
