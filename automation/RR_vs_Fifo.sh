@@ -4,7 +4,7 @@
 LAMBDA=0.5
 D=5
 MU=1
-MAX_T=1000
+MAX_T=100000
 MONITOR_INTERVAL=10
 # Round-Robin quantum values
 QUANTUM_VALUES=(0.1 0.5 1 2 5)

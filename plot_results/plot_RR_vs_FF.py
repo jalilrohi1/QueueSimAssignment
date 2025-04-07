@@ -1,11 +1,26 @@
-import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
+import ast
+import os
+import argparse
+import logging
+import matplotlib
+matplotlib.use('Agg')  # Use non-interactive backend
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 #  Load CSV File
 def load_csv(file_path):
-    df = pd.read_csv(file_path)
-    return df
+    logger.info(f"Loading CSV file from: {file_path}")
+    try:
+        df = pd.read_csv(file_path)
+        logger.info(f"Successfully loaded CSV with {len(df)} rows")
+        return df
+    except Exception as e:
+        logger.error(f"Error loading CSV: {str(e)}")
+        raise
 
 # Plot: Round-Robin vs FIFO for Different Weibull Shapes and Server Counts
 def plot_rr_vs_fifo(df, output_file):
@@ -75,8 +90,19 @@ def main():
     parser.add_argument('--output', type=str, required=True, help="Path to the output image file.")
     args = parser.parse_args()
 
+    # Validate input paths
+    if not os.path.exists(args.csv):
+        logger.error(f"CSV file not found: {args.csv}")
+        raise FileNotFoundError(f"CSV file not found: {args.csv}")
+
+    # Create output directory if it doesn't exist
+    os.makedirs(os.path.dirname(args.output), exist_ok=True)
+
+    # Load and process data
+    logger.info("Starting plot generation...")
     df = load_csv(args.csv)
     plot_rr_vs_fifo(df, args.output)
+    logger.info(f"Plot saved successfully to: {args.output}")
 
 if __name__ == "__main__":
     main()

@@ -47,7 +47,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 # Calculate total simulations to run
-total_runs=$((${#LAMBDA_VALUES[@]} * ${#D_VALUES[@]} * ${#SHAPE_VALUES[@]}))
+total_runs=$((${#N_VALUES[@]} * ${#D_VALUES[@]} * ${#SHAPE_VALUES[@]}))
 run_count=0
 
 # Run the experiment for each combination of d, n, and shape with lambda fixed at 0.7

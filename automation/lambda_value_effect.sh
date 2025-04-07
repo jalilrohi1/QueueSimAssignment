@@ -84,5 +84,5 @@ done
 
 echo "All simulations completed."
 echo "Plotting results...{$PLOT_FILE}"
-python3 ./plot_results/plot_effect_lambda_for_D_shapes.py --output "$PLOT_FILE" --csv "$CSV_FILE"
+python3 ./plot_results/plot_effect_lambda_for_D_shapes.py --output "$PLOT_FILE" --csv "$OUTPUT_FILE" --lambdas "$LAMBDA_VALUES_STR" --d "$D_VALUES_STR" --shapes "$SHAPE_VALUES_STR" --mu "$MU" --max-t "$MAX_T" --n "$N" --use-rr "$USE_RR" --quantum "$QUANTUM"
 echo "Plotting complete. Results saved to $PLOT_FILE"
