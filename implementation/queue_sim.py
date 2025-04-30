@@ -10,11 +10,7 @@ import numpy as np
 from random import expovariate, randrange, sample, seed
 
 from libs.discrete_event_sim import Simulation, Event
-# One possible modification is to use a different distribution for job sizes or and/or interarrival times.
-# Weibull distributions (https://en.wikipedia.org/wiki/Weibull_distribution) are a generalization of the
-# exponential distribution, and can be used to see what happens when values are more uniform (shape > 1,
-# approaching a "bell curve") or less (shape < 1, "heavy tailed" case when most of the work is concentrated
-# on few jobs).
+
 
 # To use Weibull variates, for a given set of parameter do something like
 from libs.workloads import weibull_generator
@@ -93,17 +89,11 @@ class Queues(Simulation):
 
     def schedule_completion(self, job_id, queue_index, execution_time):
         if self.use_rr:
-            self.schedule_completion_rr(job_id, queue_index, execution_time)
+            #self.schedule_completion_rr(job_id, queue_index, execution_time)
+            self.schedule(min(execution_time, self.quantum),CompletionRR(job_id, queue_index, max(0, execution_time - self.quantum)))
         else:
             self.schedule(execution_time, Completion(job_id, queue_index))  # Removed remaining_time and is_interruption
-
-    def schedule_completion_rr(self, job_id, queue_index, remaining_time):
-        #self.schedule(self.quantum, CompletionRR(job_id, queue_index, max(0, remaining_time - self.quantum)))
-        if remaining_time > self.quantum:
-             self.schedule(self.quantum, CompletionRR(job_id, queue_index, remaining_time - self.quantum))
-        else:
-             self.schedule(remaining_time, CompletionRR(job_id, queue_index, 0))  # Removed is_interruption
-
+        
     def queue_len(self, i):
         """Return the length of the i-th queue.
         
@@ -118,15 +108,14 @@ class Arrival(Event):
         sim.arrivals[self.id] = sim.t       # Record arrival time for all jobs
         sim.arrivals_log[self.id] = sim.t   # Record arrival time for all jobs
         queue_index = sim.supermarket_decision() if sim.d > 1 else randrange(sim.n)
-        
-        #print(f"[Time {sim.t:.2f}] Job {self.id} arrived at queue {queue_index}, queue length: {len(sim.queues[queue_index])}")    
-        if sim.running[queue_index] is None: # If the queue is empty, start the job
-            execution_time = sim.generate_service_time()
+        execution_time = sim.generate_service_time()
+    
+        if sim.running[queue_index] is None: # If the queue is empty, start the job            
             sim.running[queue_index] = (self.id, execution_time) if sim.use_rr else self.id
             sim.schedule_completion(self.id, queue_index, execution_time)
         else:
-            sim.queues[queue_index].append((self.id, sim.generate_service_time()) if sim.use_rr else self.id)
-        
+            sim.queues[queue_index].append((self.id, execution_time) if sim.use_rr else self.id)
+
         sim.schedule_arrival(self.id + 1)
 
 class Completion(Event):

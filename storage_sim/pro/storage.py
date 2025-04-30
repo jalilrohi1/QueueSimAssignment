@@ -73,26 +73,24 @@ class Backup(Simulation):
         # Debugging Output
         print(f"Time {time}: Upload Waste: {self.up_bw_wasted[time]}, Download Waste: {self.dw_bw_wasted[time]}")
     
-
-    
     def schedule_transfer(self, uploader: 'Node', downloader: 'Node', block_id: int, restore: bool):
         block_size = downloader.block_size if restore else uploader.block_size
-        
-        active_uploads = len(uploader.current_uploads) + 1
-        active_downloads = len(downloader.current_downloads) + 1
-        # Calculate fair-share bandwidth
-        upload_speed = uploader.available_bw_upload / active_uploads
-        download_speed = downloader.available_bw_download / active_downloads
-        speed = min(upload_speed, download_speed)
-        #speed = min(uploader.available_bw_upload, downloader.available_bw_download)
-        print(f"Speeddddddd: {speed}, available_bw_upload: {uploader.available_bw_upload}, available_bw_download: {downloader.available_bw_download}")
+
+        # Calculate effective bandwidth considering current active transfers
+        uploader_active = len(uploader.current_uploads) + 1
+        downloader_active = len(downloader.current_downloads) + 1
+
+        #effective_upload_speed = uploader.upload_speed / uploader_active
+        #effective_download_speed = downloader.download_speed / downloader_active
+        speed = min(uploader.available_bw_upload, downloader.available_bw_download)
         if speed <= 0:
-            assert speed > 0, "No available bandwidth for transfer"
+            #assert speed > 0, "No available bandwidth for transfer"
+            #logging.info("No Available Bandwidth for transfer")
             return
         
         uploader.available_bw_upload -= speed
         downloader.available_bw_download -= speed
-        print(f"Speedafafaaaaaaaaaaaa: {speed}, available_bw_upload: {uploader.available_bw_upload}, available_bw_download: {downloader.available_bw_download}")
+        #speed = min(effective_upload_speed, effective_download_speed)
         delay = block_size / speed
 
         # Create transfer event (either backup or restore)
@@ -295,22 +293,19 @@ class Node:
     def schedule_next_uploads(self, sim: Backup):
         """Schedule multiple uploads in parallel if allowed."""
         counter = 0
-        while counter < 1 or sim.parallel_up_down:
-            if self.available_bw_upload>=0:# Allow multiple uploads
-                if not self.schedule_next_upload(sim):  # Calls your existing upload function
-                    break
-                counter += 1  # Track how many uploads we scheduled
-                print(f'schedule_next_upload node: {counter}')
+        while counter < 1 or sim.parallel_up_down:  # Allow multiple uploads
+            if not self.schedule_next_upload(sim):  # Calls your existing upload function
+                break
+            counter += 1  # Track how many uploads we scheduled
 
     def schedule_next_downloads(self, sim: Backup):
         """Schedule multiple downloads in parallel if allowed."""
         counter = 0
-        while counter < 1 or sim.parallel_up_down:
-            if self.available_bw_download>=0:# Allow multiple downloads
-                if not self.schedule_next_download(sim):  # Calls your existing download function
-                    break
-                counter += 1  # Track how many downloads we scheduled
-                print(f'schedule_next_download node: {counter}')
+        while counter < 1 or sim.parallel_up_down:  # Allow multiple downloads
+            if not self.schedule_next_download(sim):  # Calls your existing download function
+                break
+            counter += 1  # Track how many downloads we scheduled
+
 
     def __hash__(self):
         """Function that allows us to have `Node`s as dictionary keys or set items.
@@ -341,17 +336,14 @@ class Online(NodeEvent):
 
     def process(self, sim: Backup):
         node = self.node
-        # Reset bandwidth when a node comes online
-        node.available_bw_upload = node.upload_speed
-        node.available_bw_download = node.download_speed
-        
-        print(f'Online node: {node}')
         sim.online_nodes[sim.t] = sim.online_nodes.get(sim.t, 0) + 1  # Increase count
         if node.online or node.failed:
             return
         node.online = True
         
-
+        # Reset bandwidth when a node comes online
+        node.available_bw_upload = node.upload_speed
+        node.available_bw_download = node.download_speed
         
         # schedule next upload and download
         node.schedule_next_uploads(sim)
@@ -362,7 +354,7 @@ class Online(NodeEvent):
         
         # schedule the next offline event
         sim.schedule(exp_rv(node.average_uptime), Offline(node))
-        print('Online Ends ')
+
 
 class Recover(Online):
     """A node goes online after recovering from a failure."""
@@ -370,57 +362,47 @@ class Recover(Online):
     def process(self, sim: Backup):
         node = self.node
         sim.log_info(f"{node} recovers")
-        print(f'Recover node: {node}')
         node.failed = False
         # Reset Storage
         self.node.free_space = self.node.storage_size - self.node.block_size * self.node.n
 
         super().process(sim)
         sim.schedule(exp_rv(node.average_lifetime), Fail(node))
-        print(f'Recover Endsss')
-
-
 
 
 class Disconnection(NodeEvent):
     """Base class for both Offline and Fail, events that make a node disconnect."""
 
-    
     def process(self, sim: Simulation):
         """Must be implemented by subclasses."""
         raise NotImplementedError
-    
     def disconnect(self):
         node = self.node
         node.online = False
-        print(f'Dissconnection node: {node}')
-        # Cancel uploads and return bandwidth
+
+        # Cancel all active uploads
         for transfer in node.current_uploads:
             transfer.canceled = True
-            transfer.uploader.available_bw_upload += transfer.speed  # Return bandwidth
-            transfer.downloader.available_bw_download += transfer.speed
+            # Remove the transfer from the downloader's current_downloads list if present
             if transfer in transfer.downloader.current_downloads:
                 transfer.downloader.current_downloads.remove(transfer)
         node.current_uploads.clear()
 
-        # Cancel downloads and return bandwidth
+        # Cancel all active downloads
         for transfer in node.current_downloads:
             transfer.canceled = True
-            transfer.uploader.available_bw_upload += transfer.speed  # Return bandwidth
-            transfer.downloader.available_bw_download += transfer.speed
+            # Remove the transfer from the uploader's current_uploads list if present
             if transfer in transfer.uploader.current_uploads:
                 transfer.uploader.current_uploads.remove(transfer)
         node.current_downloads.clear()
-        node.available_bw_upload = node.upload_speed
-        node.available_bw_download = node.download_speed
-        print('Dissconnectiono ends ')
+
+
 
 class Offline(Disconnection):
     """A node goes offline."""
 
     def process(self, sim: Backup):
         node = self.node
-        print(f'Offline node : {node} ')
         sim.online_nodes[sim.t] = sim.online_nodes.get(sim.t, 0) - 1  # Decrease count
         if node.failed or not node.online:
             return
@@ -428,7 +410,6 @@ class Offline(Disconnection):
         self.disconnect()
         # schedule the next online event
         sim.schedule(exp_rv(self.node.average_downtime), Online(node))
-        print(f'offline Ends ')
 
 
 class Fail(Disconnection):
@@ -438,7 +419,7 @@ class Fail(Disconnection):
         #sim.log_info(f"Data lost: {sum(node.failed for node in sim.nodes)}")
         lost_blocks = sum(1 for block in self.node.local_blocks if block)
         sim.log_info(f"{self.node} fails - {lost_blocks} blocks lost")
-        print(f'Failed node {self.node} lost blocks {lost_blocks}')
+
         self.disconnect()
         node = self.node
         node.failed = True
@@ -462,7 +443,7 @@ class Fail(Disconnection):
         # schedule the next online and recover events
         recover_time = exp_rv(node.average_recover_time)
         sim.schedule(recover_time, Recover(node))
-        print('Fialed  Enddddd')
+        
 
 class DelayedUploadEvent:
     """Event to schedule an upload after a delay."""
@@ -494,11 +475,7 @@ class TransferComplete(Event):
     def process(self, sim: Backup):
         sim.log_info(f"Successful transfer: Block {self.block_id} from {self.uploader} to {self.downloader}")
         if self.canceled:
-            # Return bandwidth if the transfer was canceled
-            self.uploader.available_bw_upload += self.speed
-            self.downloader.available_bw_download += self.speed
-            return
-        print(f"trafer complete: {self.uploader} to {self.downloader}")
+            return  # this transfer was canceled, so ignore this event
         uploader, downloader = self.uploader, self.downloader
         assert uploader.online and downloader.online
         self.update_block_state()
@@ -506,11 +483,12 @@ class TransferComplete(Event):
         self.uploader.successful_transfers += 1
         self.downloader.successful_transfers += 1
         
-        print(f"Transfer Complate speed{self.speed}, uploader.available_bw_upload: {uploader.available_bw_upload}, downloader.available_bw_download: {downloader.available_bw_download}")
+        
         # once the transfer is finished, bandwidth used is given back to peers
         uploader.available_bw_upload += self.speed ###llllllllllll
         downloader.available_bw_download += self.speed ###llllllllllll
-        print(f"Transfer Complate speed{self.speed}, uploader.available_bw_upload: {uploader.available_bw_upload}, downloader.available_bw_download: {downloader.available_bw_download}")
+        #Register bandwidth waste at each transfer completion
+        #sim.register_bw_waste(sim.t)
         
         # Track the number of transfers at each time step
         if sim.t not in sim.transfer_counts:
@@ -524,13 +502,13 @@ class TransferComplete(Event):
             downloader.current_downloads.remove(self)
             
         if sim.parallel_up_down:
-            uploader.schedule_next_uploads(sim)
-            downloader.schedule_next_downloads(sim)
+            uploader.schedule_next_upload(sim)
+            downloader.schedule_next_download(sim)
         else:
             uploader.schedule_next_upload(sim)
             downloader.schedule_next_download(sim)
 
-        print(f"trafer complete Endddddddd: {self.uploader} to {self.downloader}")
+        
         for node in [uploader, downloader]:
             sim.log_info(f"{node}: {sum(node.local_blocks)} local blocks, "
                          f"{sum(peer is not None for peer in node.backed_up_blocks)} backed up blocks, "
@@ -557,13 +535,12 @@ class BlockRestoreComplete(TransferComplete):
         owner.local_blocks[self.block_id] = True
         if sum(owner.local_blocks) == owner.k:  # we have exactly k local blocks, we have all of them then
             owner.local_blocks = [True] * owner.n ###lllllllllllll
-            #pass
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("config", help="configuration file")
-    parser.add_argument("--max-t", default="5 years")
+    parser.add_argument("--max-t", default="100 years")
     parser.add_argument("--seed", help="random seed")
     parser.add_argument("--verbose", action='store_true')
     parser.add_argument("--parallel", action='store_true', help="Enable parallel uploads and downloads")

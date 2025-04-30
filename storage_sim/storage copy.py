@@ -77,14 +77,14 @@ class Backup(Simulation):
         effective_upload_speed = uploader.upload_speed / uploader_active
         effective_download_speed = downloader.download_speed / downloader_active
 
-        speed = min(uploader.available_bw_upload, downloader.available_bw_download)
+        speed = min(effective_upload_speed.available_bw_upload, effective_download_speed.available_bw_download)
         if speed <= 0:
             #assert speed > 0, "No available bandwidth for transfer"
             logging.info("No Available Bandwidth for transfer")
             return
         
-        uploader.available_bw_upload -= speed
-        downloader.available_bw_download -= speed
+        effective_download_speed.available_bw_upload -= speed
+        effective_download_speed.available_bw_download -= speed
         # speed = min(effective_upload_speed, effective_download_speed)
         delay = block_size / speed
 
@@ -271,7 +271,13 @@ class Node:
         # If parallel transfers are disabled and there’s already an active download, do nothing.
         if not sim.parallel_up_down and self.current_downloads:
             return False
-
+        # If parallel transfers are disabled and there’s already an active upload, do nothing.
+        if sim.parallel_up_down:
+            if self.available_bw_downloads == 0:
+                return False
+        else:
+            if self.current_downloads:
+                return False
         # First, look for a missing block to restore.
         for block_id, (held_locally, peer) in enumerate(zip(self.local_blocks, self.backed_up_blocks)):
             if not held_locally and peer is not None and peer.online and not peer.current_uploads:
